@@ -20,6 +20,10 @@ class DBClient {
   async nbFiles() {
     return this.client.db().collection('files').countDocuments();
   }
+
+  async getClient(collectionName) {
+    return this.client.db().collection(collectionName);
+  }
 }
 
 const dbClient = new DBClient();
