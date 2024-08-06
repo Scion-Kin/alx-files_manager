@@ -1,10 +1,14 @@
 const AppController = require('../controllers/AppController');
-const createUser = require('../controllers/UsersController');
+const UsersController = require('../controllers/UsersController');
+const AuthController = require('../controllers/AuthController');
 
 const routes = (app) => {
   app.get('/status', AppController.getStatus);
   app.get('/stats', AppController.getStats);
-  app.post('/users', createUser);
+  app.post('/users', UsersController.createUser);
+  app.get('/connect', AuthController.getConnect);
+  app.get('/disconnect', AuthController.getDisconnect);
+  app.get('/users/me', UsersController.getMe);
 };
 
 module.exports = routes;

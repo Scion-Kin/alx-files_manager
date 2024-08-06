@@ -1,7 +1,9 @@
 const sha1 = require('sha1');
+const { ObjectId } = require('mongodb');
 const dbClient = require('../utils/db');
+const { redisClient } = require('../utils/redis');
 
-module.exports = async function createUser(req, res) {
+export async function createUser(req, res) {
   const email = req.body ? req.body.email : null;
   const password = req.body ? req.body.password : null;
   if (!email) {
@@ -23,4 +25,21 @@ module.exports = async function createUser(req, res) {
   const userId = created.insertedId.toString();
 
   res.status(201).json({ email, id: userId });
-};
+}
+
+export async function getMe(req, res) {
+  const token = req.headers['x-token'];
+  const id = await redisClient.get(`auth_${token}`);
+  if (!id) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
+  const collection = await dbClient.getClient('users');
+  const user = await collection.findOne({ _id: new ObjectId(id) });
+  if (!user) {
+    res.status(401).json({ error: 'Unauthorized' });
+  } else {
+    res.json({ id: user._id, email: user.email });
+  }
+}

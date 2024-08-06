@@ -22,7 +22,7 @@ class RedisClient {
   }
 
   async del(key) {
-    await promisify(this.client.DEL).bind(this.client)(key);
+    await promisify(this.client.del).bind(this.client)(key);
   }
 }
 
