@@ -13,7 +13,7 @@ export async function getConnect(req, res) {
   if (!user) {
     res.status(401).json({ error: 'Unauthorized' });
   } else {
-    redisClient.set(`auth_${token.toString()}`, 24 * 3600, user._id.toString());
+    redisClient.set(`auth_${token.toString()}`, user._id.toString(), 86400);
     res.json({ token });
   }
 }
