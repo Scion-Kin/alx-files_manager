@@ -1,7 +1,7 @@
 const AppController = require('../controllers/AppController');
 const UsersController = require('../controllers/UsersController');
 const AuthController = require('../controllers/AuthController');
-const postUpload = require('../controllers/FilesController');
+const FilesController = require('../controllers/FilesController');
 
 const routes = (app) => {
   app.get('/status', AppController.getStatus);
@@ -10,7 +10,9 @@ const routes = (app) => {
   app.get('/connect', AuthController.getConnect);
   app.get('/disconnect', AuthController.getDisconnect);
   app.get('/users/me', UsersController.getMe);
-  app.post('/files', postUpload);
+  app.post('/files', FilesController.postUpload);
+  app.get('/files/:id', FilesController.getShow);
+  app.get('/files', FilesController.getIndex);
 };
 
 module.exports = routes;

@@ -6,7 +6,7 @@ const { redisClient } = require('../utils/redis');
 
 const rootFolder = process.env.FOLDER_PATH || '/tmp/files_manager';
 
-module.exports = async function postUpload(req, res) {
+export async function postUpload(req, res) {
   const token = req.headers['x-token'];
   const { name, type, data } = req.body;
   const [isPublic, parentId] = [req.body.isPublic || false, req.body.parentId || 0];
@@ -35,7 +35,8 @@ module.exports = async function postUpload(req, res) {
       userId: ObjectId(userId),
       name,
       type,
-      parentId: parentId === 0 ? '0' : ObjectId(parentId),
+      isPublic,
+      parentId: parentId === 0 ? 0 : ObjectId(parentId),
     });
 
     const fName = obj.insertedId.toString();
@@ -51,7 +52,7 @@ module.exports = async function postUpload(req, res) {
       name,
       type,
       isPublic,
-      parentId: parentId === 0 ? '0' : ObjectId(parentId),
+      parentId: parentId === 0 ? 0 : ObjectId(parentId),
       localPath,
     });
 
@@ -60,4 +61,50 @@ module.exports = async function postUpload(req, res) {
       id: obj.insertedId.toString(), userId, name, type, isPublic, parentId,
     });
   }
-};
+}
+
+export async function getShow(req, res) {
+  const token = req.headers['x-token'];
+  const userId = await redisClient.get(`auth_${token}`);
+  const collection = await dbClient.getClient('files');
+
+  if (!userId) {
+    res.status(401).json({ error: 'Unauthorized' });
+  } else {
+    const file = await collection.findOne({ _id: ObjectId(req.params.id) });
+    if (!file) {
+      res.status(404).json({ error: 'Not found' });
+    } else {
+      res.json(file);
+    }
+  }
+}
+
+export async function getIndex(req, res) {
+  const token = req.headers['x-token'];
+  const parentId = req.query.parentId ? ObjectId(req.query.parentId) : 0;
+  const userId = ObjectId(await redisClient.get(`auth_${token}`));
+  const collection = await dbClient.getClient('files');
+
+  if (!userId.toString()) {
+    res.status(401).json({ error: 'Unauthorized' });
+  } else {
+    const files = await collection.aggregate([
+      { $match: parentId !== 0 ? { userId, parentId } : { userId } },
+      { $sort: { _id: -1 } },
+      { $limit: 20 },
+      {
+        $project: {
+          _id: 0,
+          id: '$_id',
+          userId: '$userId',
+          name: '$name',
+          type: '$type',
+          isPublic: '$isPublic',
+          parentId: '$parentId',
+        },
+      },
+    ]).toArray();
+    res.json(files);
+  }
+}
