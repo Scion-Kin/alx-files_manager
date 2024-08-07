@@ -13,6 +13,7 @@ const routes = (app) => {
   app.post('/files', FilesController.postUpload);
   app.get('/files/:id', FilesController.getShow);
   app.get('/files', FilesController.getIndex);
+  app.put('/files/:id/publish', FilesController.putPublish);
 };
 
 module.exports = routes;

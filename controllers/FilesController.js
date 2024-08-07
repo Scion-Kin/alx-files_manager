@@ -71,7 +71,10 @@ export async function getShow(req, res) {
   if (!userId) {
     res.status(401).json({ error: 'Unauthorized' });
   } else {
-    const file = await collection.findOne({ _id: ObjectId(req.params.id) });
+    const file = await collection.findOne({
+      userId: ObjectId(userId),
+      _id: ObjectId(req.params.id),
+    });
     if (!file) {
       res.status(404).json({ error: 'Not found' });
     } else {
@@ -107,4 +110,27 @@ export async function getIndex(req, res) {
     ]).toArray();
     res.json(files);
   }
+}
+
+export async function putPublish(req, res) {
+  const token = req.headers['x-token'];
+  const { id } = req.params;
+  const userId = await redisClient.get(`auth_${token}`);
+  const collection = await dbClient.getClient('files');
+  const fileFilter = { _id: ObjectId(id), userId: ObjectId(userId) };
+  const file = await collection.findOne(fileFilter);
+
+  if (!file) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+  collection.updateOne(fileFilter, { $set: { isPublic: true } });
+  res.status(200).json({
+    id,
+    userId,
+    name: file.name,
+    type: file.type,
+    isPublic: true,
+    parentId: file.parentId,
+  });
 }
