@@ -1,9 +1,9 @@
 const { ObjectId } = require('mongodb');
 const fs = require('fs');
 const { v4 } = require('uuid');
+const mime = require('mime-types');
 const dbClient = require('../utils/db');
 const { redisClient } = require('../utils/redis');
-const mime = require('mime-types');
 
 const rootFolder = process.env.FOLDER_PATH || '/tmp/files_manager';
 
@@ -165,16 +165,16 @@ export async function getFile(req, res) {
   const userId = await redisClient.get(`auth_${token}`);
   const collection = await dbClient.getClient('files');
   const file = await collection.findOne({ _id: ObjectId(id) });
-  if (!file || file.isPublic === false && (!userId || file.userId !== ObjectId(userId))) {
-    res.status(404).json({ error: "Not Found" });
+  if (!file || (file.isPublic === false && (!userId || file.userId !== ObjectId(userId)))) {
+    res.status(404).json({ error: 'Not Found' });
     return;
   }
   if (file.type === 'folder') {
     res.status(400).json({ error: "A folder doesn't have content" });
   } else {
     if (!fs.existsSync(file.localPath)) {
-      res.status(404).json({ error: "Not Found" });
-      return; 
+      res.status(404).json({ error: 'Not Found' });
+      return;
     }
     const absoluteFilePath = fs.realpathSync(file.localPath);
     res.setHeader('Content-Type', mime.contentType(file.localPath) || 'text/plain; charset=utf-8');
