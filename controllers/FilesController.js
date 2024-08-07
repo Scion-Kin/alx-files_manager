@@ -134,3 +134,26 @@ export async function putPublish(req, res) {
     parentId: file.parentId,
   });
 }
+
+export async function putUnpublish(req, res) {
+  const token = req.headers['x-token'];
+  const { id } = req.params;
+  const userId = await redisClient.get(`auth_${token}`);
+  const collection = await dbClient.getClient('files');
+  const fileFilter = { _id: ObjectId(id), userId: ObjectId(userId) };
+  const file = await collection.findOne(fileFilter);
+
+  if (!file) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+  collection.updateOne(fileFilter, { $set: { isPublic: false } });
+  res.status(200).json({
+    id,
+    userId,
+    name: file.name,
+    type: file.type,
+    isPublic: false,
+    parentId: file.parentId,
+  });
+}
