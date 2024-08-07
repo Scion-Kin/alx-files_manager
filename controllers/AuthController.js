@@ -4,10 +4,8 @@ const dbClient = require('../utils/db');
 const { redisClient } = require('../utils/redis');
 
 export async function getConnect(req, res) {
-  const { authorization } = req.headers;
-  const details = atob(authorization.split(' ')[1]).split(':');
-  const email = details[0]; const
-    password = details[1];
+  const auth = req.headers.authorization.split(' ')[1];
+  const [email, password] = Buffer.from(auth, 'base64').toString('utf-8').split(':');
   const token = v4(); // uuid version 4
   const collection = await dbClient.getClient('users');
   const user = await collection.findOne({ email, password: sha1(password) });
@@ -22,7 +20,7 @@ export async function getConnect(req, res) {
 
 export async function getDisconnect(req, res) {
   const token = req.headers['x-token'];
-  const userId = await redisClient.get(token);
+  const userId = await redisClient.get(`auth_${token}`);
   if (!userId) {
     res.status(401).json({ error: 'Unauthorized' });
   } else {
