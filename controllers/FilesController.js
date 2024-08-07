@@ -35,8 +35,7 @@ module.exports = async function postUpload(req, res) {
       userId: ObjectId(userId),
       name,
       type,
-      isPublic,
-      parentId: parentId === 0 ? 0 : ObjectId(parentId),
+      parentId: parentId === 0 ? '0' : ObjectId(parentId),
     });
 
     const fName = obj.insertedId.toString();
@@ -52,7 +51,7 @@ module.exports = async function postUpload(req, res) {
       name,
       type,
       isPublic,
-      parentId: parentId === 0 ? 0 : ObjectId(parentId),
+      parentId: parentId === 0 ? '0' : ObjectId(parentId),
       localPath,
     });
 
