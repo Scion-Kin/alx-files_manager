@@ -4,18 +4,13 @@ import { createClient } from 'redis';
 class RedisClient {
   constructor() {
     this.client = createClient();
-    this.isClientConnected = true;
-    this.client.on('error', (err) => {
-      console.error('Redis client failed to connect:', err.message || err.toString());
-      this.isClientConnected = false;
-    });
-    this.client.on('connect', () => {
-      this.isClientConnected = true;
+    this.client.on('error', (error) => {
+      console.error(`Redis client failed to connect: ${error.message || error.toString()}`);
     });
   }
 
   isAlive() {
-    return this.isClientConnected;
+    return this.client.PING();
   }
 
   async get(key) {
@@ -23,8 +18,7 @@ class RedisClient {
   }
 
   async set(key, value, duration) {
-    await promisify(this.client.SETEX)
-      .bind(this.client)(key, duration, value);
+    await promisify(this.client.SETEX).bind(this.client)(key, duration, value);
   }
 
   async del(key) {
