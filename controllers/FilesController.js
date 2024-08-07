@@ -4,7 +4,7 @@ const { v4 } = require('uuid');
 const dbClient = require('../utils/db');
 const { redisClient } = require('../utils/redis');
 
-const rootFolder = process.env.FOLDER_PATH || 'temp/files_manager';
+const rootFolder = process.env.FOLDER_PATH || '/tmp/files_manager';
 
 module.exports = async function postUpload(req, res) {
   const token = req.headers['x-token'];
@@ -22,13 +22,15 @@ module.exports = async function postUpload(req, res) {
   } else if (!data && type !== 'folder') {
     res.status(400).json({ error: 'Missing data' });
   } else if (parentId !== 0) {
-    const file = await collection.findOne({ _id: parentId });
+    const file = await collection.findOne({ _id: ObjectId(parentId) });
     if (!file) {
       res.status(400).json({ error: 'Page not found' });
     } else if (file.type !== 'folder') {
       res.status(400).json({ error: 'Parent is not a folder' });
+      return;
     }
-  } else if (type === 'folder') {
+  }
+  if (type === 'folder') {
     const obj = await collection.insertOne({
       userId: ObjectId(userId),
       name,
@@ -43,7 +45,7 @@ module.exports = async function postUpload(req, res) {
     });
     fs.mkdir(parentId === 0 ? `${rootFolder}/${fName}` : `${rootFolder}/${parentId}/${fName}`, () => {});
   } else {
-    const fileDBName = v4().toString();
+    const fileDBName = v4();
     const localPath = parentId === 0 ? `${rootFolder}/${fileDBName}` : `${rootFolder}/${parentId}/${fileDBName}`;
     const obj = await collection.insertOne({
       userId: ObjectId(userId),
