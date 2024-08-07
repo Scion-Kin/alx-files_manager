@@ -1,13 +1,12 @@
-import { v4 as uuidv4 } from 'uuid';
-import redisClient from '../utils/redis';
-
 const sha1 = require('sha1');
+const { v4 } = require('uuid');
+const { redisClient } = require('../utils/redis');
 const dbClient = require('../utils/db');
 
 export async function getConnect(req, res) {
   const auth = req.headers.authorization.split(' ')[1];
   const [email, password] = Buffer.from(auth, 'base64').toString('utf-8').split(':');
-  const token = uuidv4();
+  const token = v4();
   const collection = await dbClient.getClient('users');
   const user = await collection.findOne({ email, password: sha1(password) });
 
