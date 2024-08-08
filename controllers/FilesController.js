@@ -5,7 +5,7 @@ const mime = require('mime-types');
 const dbClient = require('../utils/db');
 const { redisClient } = require('../utils/redis');
 
-const rootFolder = process.env.FOLDER_PATH || '/tmp/files_manager';
+const rootFolder = process.env.FOLDER_PATH || 'temp/files_manager';
 
 export async function postUpload(req, res) {
   const token = req.headers['x-token'];
@@ -45,7 +45,7 @@ export async function postUpload(req, res) {
     });
 
     const fName = obj.insertedId.toString();
-    res.json({
+    res.status(201).json({
       id: fName, userId, name, type, isPublic, parentId,
     });
     fs.mkdir(parentId === 0 ? `${rootFolder}/${fName}` : `${rootFolder}/${parentId}/${fName}`, () => {});
