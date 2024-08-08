@@ -2,12 +2,12 @@ const { ObjectId } = require('mongodb');
 const fs = require('fs');
 const { v4 } = require('uuid');
 const mime = require('mime-types');
+const { promisify } = require('util');
 const dbClient = require('../utils/db');
 const { redisClient } = require('../utils/redis');
-const { promisify } = require('util')
 
 const mkdir = promisify(fs.mkdir);
-const rootFolder = process.env.FOLDER_PATH || 'temp/files_manager';
+const rootFolder = process.env.FOLDER_PATH || '/tmp/files_manager';
 
 export async function postUpload(req, res) {
   const token = req.headers['x-token'];
@@ -37,6 +37,7 @@ export async function postUpload(req, res) {
     res.status(error.message === 'Unauthorized' ? 401 : 400).json({ error: error.message });
     return;
   }
+  const parent = parentId === 0 ? rootFolder : `${rootFolder}/${parentId}`;
   if (type === 'folder') {
     const obj = await collection.insertOne({
       userId: ObjectId(userId),
@@ -50,8 +51,7 @@ export async function postUpload(req, res) {
     res.status(201).json({
       id: fName, userId, name, type, isPublic, parentId,
     });
-    await mkdir(parentId === 0 ? `${rootFolder}/${fName}` : `${rootFolder}/${parentId}/${fName}`, 
-                { recursive: true });
+    await mkdir(`${parent}/${fName}`, { recursive: true });
   } else {
     const fileDBName = v4();
     const parent = parentId === 0 ? rootFolder : `${rootFolder}/${parentId}`;
@@ -66,7 +66,6 @@ export async function postUpload(req, res) {
     });
 
     fs.writeFile(localPath, Buffer.from(data, 'base64').toString('utf-8'), (err) => {
-      if (err) console.error(err);
       res.status(201).json({
         id: obj.insertedId.toString(), userId, name, type, isPublic, parentId,
       });
