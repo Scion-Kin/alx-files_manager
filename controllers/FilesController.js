@@ -65,10 +65,9 @@ export async function postUpload(req, res) {
       localPath,
     });
 
-    fs.writeFile(localPath, Buffer.from(data, 'base64').toString('utf-8'), (err) => {
-      res.status(201).json({
-        id: obj.insertedId.toString(), userId, name, type, isPublic, parentId,
-      });
+    fs.writeFile(localPath, Buffer.from(data, 'base64').toString('utf-8'));
+    res.status(201).json({
+      id: obj.insertedId.toString(), userId, name, type, isPublic, parentId,
     });
   }
 }
