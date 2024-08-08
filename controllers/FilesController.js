@@ -98,9 +98,11 @@ export async function getIndex(req, res) {
   if (!userId.toString()) {
     res.status(401).json({ error: 'Unauthorized' });
   } else {
+    const page = req.query.page ? req.query.page : 0;
     const files = await collection.aggregate([
       { $match: parentId !== 0 ? { userId, parentId } : { userId } },
       { $sort: { _id: -1 } },
+      { $skip: page * 20 },
       { $limit: 20 },
       {
         $project: {
