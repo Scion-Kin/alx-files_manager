@@ -14,22 +14,26 @@ export async function postUpload(req, res) {
   const userId = await redisClient.get(`auth_${token}`);
   const collection = await dbClient.getClient('files');
 
+  try {
   if (!userId) {
-    res.status(401).json({ error: 'Unauthorized' });
+    throw new Error('Unauthorized');
   } else if (!name) {
-    res.status(400).json({ error: 'Missing name' });
+    throw new Error('Missing name');
   } else if (!type || !['folder', 'file', 'image'].includes(type)) {
-    res.status(400).json({ error: 'Missing type' });
+    throw new Error('Missing type');
   } else if (!data && type !== 'folder') {
-    res.status(400).json({ error: 'Missing data' });
+    throw new Error('Missing data');
   } else if (parentId !== 0) {
     const file = await collection.findOne({ _id: ObjectId(parentId) });
     if (!file) {
-      res.status(400).json({ error: 'Page not found' });
+      throw new Error('Page not found');
     } else if (file.type !== 'folder') {
-      res.status(400).json({ error: 'Parent is not a folder' });
-      return;
+      throw new Error('Parent is not a folder');
     }
+  }
+  } catch (error) {
+    res.status(error.message == "Unauthorized" ? 401 : 400).json({ error: error.message });
+    return;
   }
   if (type === 'folder') {
     const obj = await collection.insertOne({
