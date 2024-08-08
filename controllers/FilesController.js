@@ -15,24 +15,24 @@ export async function postUpload(req, res) {
   const collection = await dbClient.getClient('files');
 
   try {
-  if (!userId) {
-    throw new Error('Unauthorized');
-  } else if (!name) {
-    throw new Error('Missing name');
-  } else if (!type || !['folder', 'file', 'image'].includes(type)) {
-    throw new Error('Missing type');
-  } else if (!data && type !== 'folder') {
-    throw new Error('Missing data');
-  } else if (parentId !== 0) {
-    const file = await collection.findOne({ _id: ObjectId(parentId) });
-    if (!file) {
-      throw new Error('Parent not found');
-    } else if (file.type !== 'folder') {
-      throw new Error('Parent is not a folder');
+    if (!userId) {
+      throw new Error('Unauthorized');
+    } else if (!name) {
+      throw new Error('Missing name');
+    } else if (!type || !['folder', 'file', 'image'].includes(type)) {
+      throw new Error('Missing type');
+    } else if (!data && type !== 'folder') {
+      throw new Error('Missing data');
+    } else if (parentId !== 0) {
+      const file = await collection.findOne({ _id: ObjectId(parentId) });
+      if (!file) {
+        throw new Error('Parent not found');
+      } else if (file.type !== 'folder') {
+        throw new Error('Parent is not a folder');
+      }
     }
-  }
   } catch (error) {
-    res.status(error.message == "Unauthorized" ? 401 : 400).json({ error: error.message });
+    res.status(error.message === 'Unauthorized' ? 401 : 400).json({ error: error.message });
     return;
   }
   if (type === 'folder') {
