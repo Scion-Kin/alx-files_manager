@@ -128,7 +128,7 @@ export async function putPublish(req, res) {
   const fileFilter = { _id: ObjectId(id), userId: ObjectId(userId) };
   const file = await collection.findOne(fileFilter);
 
-  if (!userId ) {
+  if (!userId) {
     res.status(401).json({ error: 'Unauthorized' });
   } else {
     if (await redisClient.get(`auth_${token}`) == null || !file) {
@@ -155,7 +155,7 @@ export async function putUnpublish(req, res) {
   const fileFilter = { _id: ObjectId(id), userId: ObjectId(userId) };
   const file = await collection.findOne(fileFilter);
 
-  if (!userId ) {
+  if (!userId) {
     res.status(401).json({ error: 'Unauthorized' });
   } else {
     if (!file) {
@@ -181,14 +181,14 @@ export async function getFile(req, res) {
   const collection = await dbClient.getClient('files');
   const file = await collection.findOne({ _id: ObjectId(id) });
   if (!file || (file.isPublic === false && (!userId || file.userId !== ObjectId(userId)))) {
-    res.status(404).json({ error: 'Not Found' });
+    res.status(404).json({ error: 'Not found' });
     return;
   }
   if (file.type === 'folder') {
     res.status(400).json({ error: "A folder doesn't have content" });
   } else {
     if (!fs.existsSync(file.localPath)) {
-      res.status(404).json({ error: 'Not Found' });
+      res.status(404).json({ error: 'Not found' });
       return;
     }
     const absoluteFilePath = fs.realpathSync(file.localPath);
