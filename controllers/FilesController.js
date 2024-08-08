@@ -128,7 +128,7 @@ export async function putPublish(req, res) {
   const fileFilter = { _id: ObjectId(id), userId: ObjectId(userId) };
   const file = await collection.findOne(fileFilter);
 
-  if (!file) {
+  if (await redisClient.get(`auth_${token}`) == null || !file) {
     res.status(404).json({ error: 'Not found' });
     return;
   }
@@ -151,7 +151,7 @@ export async function putUnpublish(req, res) {
   const fileFilter = { _id: ObjectId(id), userId: ObjectId(userId) };
   const file = await collection.findOne(fileFilter);
 
-  if (!file) {
+  if (await redisClient.get(`auth_${token}`) == null || !file) {
     res.status(404).json({ error: 'Not found' });
     return;
   }
