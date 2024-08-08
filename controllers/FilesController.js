@@ -180,7 +180,8 @@ export async function getFile(req, res) {
   const userId = await redisClient.get(`auth_${token}`);
   const collection = await dbClient.getClient('files');
   const file = await collection.findOne({ _id: ObjectId(id) });
-  if (!file || (file.isPublic === false && (!userId || file.userId !== ObjectId(userId)))) {
+
+  if (!file || (file.isPublic === false && (!userId || file.userId.toString() !== userId))) {
     res.status(404).json({ error: 'Not found' });
     return;
   }
