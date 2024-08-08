@@ -5,7 +5,7 @@ const mime = require('mime-types');
 const dbClient = require('../utils/db');
 const { redisClient } = require('../utils/redis');
 
-const rootFolder = process.env.FOLDER_PATH || 'temp/files_manager';
+const rootFolder = process.env.FOLDER_PATH || '/tmp/files_manager';
 
 export async function postUpload(req, res) {
   const token = req.headers['x-token'];
