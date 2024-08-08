@@ -2,11 +2,9 @@ const { ObjectId } = require('mongodb');
 const fs = require('fs');
 const { v4 } = require('uuid');
 const mime = require('mime-types');
-const { promisify } = require('util');
 const dbClient = require('../utils/db');
 const { redisClient } = require('../utils/redis');
 
-const mkdir = promisify(fs.mkdir);
 const rootFolder = process.env.FOLDER_PATH || '/tmp/files_manager';
 
 export async function postUpload(req, res) {
@@ -53,13 +51,8 @@ export async function postUpload(req, res) {
     });
     fs.writeFile(`${parent}/${fName}`, '', () => {});
   } else {
-    fs.readdirSync(rootFolder).forEach((i) => {
-      fs.rmSync(`${rootFolder}/${i}`, { recursive: true, force: true });
-    });
-
-    await mkdir(parent, { recursive: true });
     const fileDBName = v4();
-    const localPath = `${parent}/${fileDBName}`;
+    const localPath = `${rootFolder}/${fileDBName}`;
     const obj = await collection.insertOne({
       userId: ObjectId(userId),
       name,
