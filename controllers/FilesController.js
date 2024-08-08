@@ -128,19 +128,23 @@ export async function putPublish(req, res) {
   const fileFilter = { _id: ObjectId(id), userId: ObjectId(userId) };
   const file = await collection.findOne(fileFilter);
 
-  if (await redisClient.get(`auth_${token}`) == null || !file) {
-    res.status(404).json({ error: 'Not found' });
-    return;
+  if (!userId ) {
+    res.status(401).json({ error: 'Unauthorized' });
+  } else {
+    if (await redisClient.get(`auth_${token}`) == null || !file) {
+      res.status(404).json({ error: 'Not found' });
+      return;
+    }
+    collection.updateOne(fileFilter, { $set: { isPublic: true } });
+    res.status(200).json({
+      id,
+      userId,
+      name: file.name,
+      type: file.type,
+      isPublic: true,
+      parentId: file.parentId,
+    });
   }
-  collection.updateOne(fileFilter, { $set: { isPublic: true } });
-  res.status(200).json({
-    id,
-    userId,
-    name: file.name,
-    type: file.type,
-    isPublic: true,
-    parentId: file.parentId,
-  });
 }
 
 export async function putUnpublish(req, res) {
@@ -151,19 +155,23 @@ export async function putUnpublish(req, res) {
   const fileFilter = { _id: ObjectId(id), userId: ObjectId(userId) };
   const file = await collection.findOne(fileFilter);
 
-  if (await redisClient.get(`auth_${token}`) == null || !file) {
-    res.status(404).json({ error: 'Not found' });
-    return;
+  if (!userId ) {
+    res.status(401).json({ error: 'Unauthorized' });
+  } else {
+    if (!file) {
+      res.status(404).json({ error: 'Not found' });
+      return;
+    }
+    collection.updateOne(fileFilter, { $set: { isPublic: false } });
+    res.status(200).json({
+      id,
+      userId,
+      name: file.name,
+      type: file.type,
+      isPublic: false,
+      parentId: file.parentId,
+    });
   }
-  collection.updateOne(fileFilter, { $set: { isPublic: false } });
-  res.status(200).json({
-    id,
-    userId,
-    name: file.name,
-    type: file.type,
-    isPublic: false,
-    parentId: file.parentId,
-  });
 }
 
 export async function getFile(req, res) {
