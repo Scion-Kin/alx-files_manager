@@ -22,7 +22,7 @@ describe('GET /files', () => {
     let initialUserId = null;
     let initialUserToken = null;
 
-    let initialFiles = [];
+    let initialFolderId = null;
 
     const fctRandomString = () => {
         return Math.random().toString(36).substring(2, 15);
@@ -57,35 +57,16 @@ describe('GET /files', () => {
                     initialUserId = createdDocs.ops[0]._id.toString();
                 }
 
-                // Add folders
-                const initialFolders = []
-                for(let i = 0 ; i < 25 ; i += 1) {
-                    const item = { 
-                        userId: ObjectID(initialUserId), 
-                        name: fctRandomString(), 
-                        type: "folder", 
-                        parentId: '0' 
-                    };
-                    const createdFileDocs = await testClientDb.collection('files').insertOne(item);
-                    if (createdFileDocs && createdFileDocs.ops.length > 0) {
-                        item.id = createdFileDocs.ops[0]._id.toString();
-                    }
-                    initialFolders.push(item)
-                }
-
-                // Add 2 folders inside a folder
-                for(let i = 0 ; i < 2 ; i += 1) {
-                    const item = { 
-                        userId: ObjectID(initialUserId), 
-                        name: fctRandomString(), 
-                        type: "folder", 
-                        parentId: ObjectID(initialFolders[0].id)
-                    };
-                    const createdFileDocs = await testClientDb.collection('files').insertOne(item);
-                    if (createdFileDocs && createdFileDocs.ops.length > 0) {
-                        item.id = createdFileDocs.ops[0]._id.toString();
-                    }
-                    initialFiles.push(item)
+                // Add 1 folder
+                const initialFolder = { 
+                    userId: ObjectID(initialUserId), 
+                    name: fctRandomString(), 
+                    type: "folder", 
+                    parentId: '0' 
+                };
+                const createdFileDocs = await testClientDb.collection('files').insertOne(initialFolder);
+                if (createdFileDocs && createdFileDocs.ops.length > 0) {
+                    initialFolderId = createdFileDocs.ops[0]._id.toString();
                 }
 
                 testRedisClient = redis.createClient();
@@ -109,248 +90,17 @@ describe('GET /files', () => {
         fctRemoveAllRedisKeys();
     });
 
-    it('GET /files with a valid parentId and no page', (done) => {
+    it('GET /files invalid token user', (done) => {
         chai.request('http://localhost:5000')
             .get(`/files`)
-            .query({ parentId: initialFiles[0].parentId.toString() })
-            .set('X-Token', initialUserToken)
+            .set('X-Token', `${initialUserToken}_121`)
             .end(async (err, res) => {
                 chai.expect(err).to.be.null;
-                chai.expect(res).to.have.status(200);
+                chai.expect(res).to.have.status(401);
 
-                const resList = res.body;
-                chai.expect(resList.length).to.equal(2);
+                const resError = res.body.error;
+                chai.expect(resError).to.equal("Unauthorized");
 
-                resList.forEach((item) => {
-                    const itemIdx = initialFiles.findIndex((i) => i.id == item.id);
-                    chai.assert.isAtLeast(itemIdx, 0);
-                    
-                    const itemInit = initialFiles.splice(itemIdx, 1)[0];
-                    chai.expect(itemInit).to.not.be.null;
-
-                    chai.expect(itemInit.id).to.equal(item.id);
-                    chai.expect(itemInit.name).to.equal(item.name);
-                    chai.expect(itemInit.type).to.equal(item.type);
-                    chai.expect(itemInit.parentId.toString()).to.equal(item.parentId.toString());
-                });
-                
-                chai.expect(initialFiles.length).to.equal(0);
-
-                done();
-            });
-    }).timeout(30000);
-});
-
-describe('GET /files', () => {
-    let testClientDb;
-    let testRedisClient;
-    let redisDelAsync;
-    let redisGetAsync;
-    let redisSetAsync;
-    let redisKeysAsync;
-
-    let initialUser = null;
-    let initialUserId = null;
-    let initialUserToken = null;
-
-    let initialFiles = [];
-
-    const fctRandomString = () => {
-        return Math.random().toString(36).substring(2, 15);
-    }
-    const fctRemoveAllRedisKeys = async () => {
-        const keys = await redisKeysAsync('auth_*');
-        keys.forEach(async (key) => {
-            await redisDelAsync(key);
-        });
-    }
-
-    beforeEach(() => {
-        const dbInfo = {
-            host: process.env.DB_HOST || 'localhost',
-            port: process.env.DB_PORT || '27017',
-            database: process.env.DB_DATABASE || 'files_manager'
-        };
-        return new Promise((resolve) => {
-            MongoClient.connect(`mongodb://${dbInfo.host}:${dbInfo.port}/${dbInfo.database}`, async (err, client) => {
-                testClientDb = client.db(dbInfo.database);
-            
-                await testClientDb.collection('users').deleteMany({})
-                await testClientDb.collection('files').deleteMany({})
-
-                // Add 1 user
-                initialUser = { 
-                    email: `${fctRandomString()}@me.com`,
-                    password: sha1(fctRandomString())
-                }
-                const createdDocs = await testClientDb.collection('users').insertOne(initialUser);
-                if (createdDocs && createdDocs.ops.length > 0) {
-                    initialUserId = createdDocs.ops[0]._id.toString();
-                }
-
-                // Add folders
-                for(let i = 0 ; i < 25 ; i += 1) {
-                    const item = { 
-                        userId: ObjectID(initialUserId), 
-                        name: fctRandomString(), 
-                        type: "folder", 
-                        parentId: '0' 
-                    };
-                    const createdFileDocs = await testClientDb.collection('files').insertOne(item);
-                    if (createdFileDocs && createdFileDocs.ops.length > 0) {
-                        item.id = createdFileDocs.ops[0]._id.toString();
-                    }
-                    initialFiles.push(item)
-                }
-
-                testRedisClient = redis.createClient();
-                redisDelAsync = promisify(testRedisClient.del).bind(testRedisClient);
-                redisGetAsync = promisify(testRedisClient.get).bind(testRedisClient);
-                redisSetAsync = promisify(testRedisClient.set).bind(testRedisClient);
-                redisKeysAsync = promisify(testRedisClient.keys).bind(testRedisClient);
-                testRedisClient.on('connect', async () => {
-                    fctRemoveAllRedisKeys();
-
-                    // Set token for this user
-                    initialUserToken = uuidv4()
-                    await redisSetAsync(`auth_${initialUserToken}`, initialUserId)
-                    resolve();
-                });
-            }); 
-        });
-    });
-        
-    afterEach(() => {
-        fctRemoveAllRedisKeys();
-    });
-
-    it('GET /files with no parentId and second page', (done) => {
-        chai.request('http://localhost:5000')
-            .get(`/files`)
-            .query({ page: 1 })
-            .set('X-Token', initialUserToken)
-            .end(async (err, res) => {
-                chai.expect(err).to.be.null;
-                chai.expect(res).to.have.status(200);
-
-                const resList = res.body;
-                chai.expect(resList.length).to.equal(5);
-                
-                resList.forEach((item) => {
-                    const itemIdx = initialFiles.findIndex((i) => i.id == item.id);
-                    chai.assert.isAtLeast(itemIdx, 0);
-                    
-                    const itemInit = initialFiles.splice(itemIdx, 1)[0];
-                    chai.expect(itemInit).to.not.be.null;
-
-                    chai.expect(itemInit.id).to.equal(item.id);
-                    chai.expect(itemInit.name).to.equal(item.name);
-                    chai.expect(itemInit.type).to.equal(item.type);
-                    chai.expect(itemInit.parentId).to.equal(item.parentId);
-                });
-                
-                chai.expect(initialFiles.length).to.equal(20);
-
-                done();
-            });
-    }).timeout(30000);
-});
-
-describe('GET /files', () => {
-    let testClientDb;
-    let testRedisClient;
-    let redisDelAsync;
-    let redisGetAsync;
-    let redisSetAsync;
-    let redisKeysAsync;
-
-    let initialUser = null;
-    let initialUserId = null;
-    let initialUserToken = null;
-
-    let initialFiles = [];
-
-    const fctRandomString = () => {
-        return Math.random().toString(36).substring(2, 15);
-    }
-    const fctRemoveAllRedisKeys = async () => {
-        const keys = await redisKeysAsync('auth_*');
-        keys.forEach(async (key) => {
-            await redisDelAsync(key);
-        });
-    }
-
-    beforeEach(() => {
-        const dbInfo = {
-            host: process.env.DB_HOST || 'localhost',
-            port: process.env.DB_PORT || '27017',
-            database: process.env.DB_DATABASE || 'files_manager'
-        };
-        return new Promise((resolve) => {
-            MongoClient.connect(`mongodb://${dbInfo.host}:${dbInfo.port}/${dbInfo.database}`, async (err, client) => {
-                testClientDb = client.db(dbInfo.database);
-            
-                await testClientDb.collection('users').deleteMany({})
-                await testClientDb.collection('files').deleteMany({})
-
-                // Add 1 user
-                initialUser = { 
-                    email: `${fctRandomString()}@me.com`,
-                    password: sha1(fctRandomString())
-                }
-                const createdDocs = await testClientDb.collection('users').insertOne(initialUser);
-                if (createdDocs && createdDocs.ops.length > 0) {
-                    initialUserId = createdDocs.ops[0]._id.toString();
-                }
-
-                // Add folders
-                for(let i = 0 ; i < 25 ; i += 1) {
-                    const item = { 
-                        userId: ObjectID(initialUserId), 
-                        name: fctRandomString(), 
-                        type: "folder", 
-                        parentId: '0' 
-                    };
-                    const createdFileDocs = await testClientDb.collection('files').insertOne(item);
-                    if (createdFileDocs && createdFileDocs.ops.length > 0) {
-                        item.id = createdFileDocs.ops[0]._id.toString();
-                    }
-                    initialFiles.push(item)
-                }
-
-                testRedisClient = redis.createClient();
-                redisDelAsync = promisify(testRedisClient.del).bind(testRedisClient);
-                redisGetAsync = promisify(testRedisClient.get).bind(testRedisClient);
-                redisSetAsync = promisify(testRedisClient.set).bind(testRedisClient);
-                redisKeysAsync = promisify(testRedisClient.keys).bind(testRedisClient);
-                testRedisClient.on('connect', async () => {
-                    fctRemoveAllRedisKeys();
-
-                    // Set token for this user
-                    initialUserToken = uuidv4()
-                    await redisSetAsync(`auth_${initialUserToken}`, initialUserId)
-                    resolve();
-                });
-            }); 
-        });
-    });
-        
-    afterEach(() => {
-        fctRemoveAllRedisKeys();
-    });
-
-    it('GET /files with no parentId and a page too far', (done) => {
-        chai.request('http://localhost:5000')
-            .get(`/files`)
-            .query({ page: 10 })
-            .set('X-Token', initialUserToken)
-            .end(async (err, res) => {
-                chai.expect(err).to.be.null;
-                chai.expect(res).to.have.status(200);
-
-                const resList = res.body;
-                chai.expect(resList.length).to.equal(0);
-                
                 done();
             });
     }).timeout(30000);

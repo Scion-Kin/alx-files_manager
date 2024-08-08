@@ -95,7 +95,8 @@ export async function getIndex(req, res) {
   const userId = ObjectId(await redisClient.get(`auth_${token}`));
   const collection = await dbClient.getClient('files');
 
-  if (!userId.toString()) {
+
+  if (await redisClient.get(`auth_${token}`) === null) {
     res.status(401).json({ error: 'Unauthorized' });
   } else {
     const page = req.query.page ? req.query.page : 0;
