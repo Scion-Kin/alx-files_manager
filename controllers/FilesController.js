@@ -37,8 +37,16 @@ export async function postUpload(req, res) {
     res.status(error.message === 'Unauthorized' ? 401 : 400).json({ error: error.message });
     return;
   }
-  const parent = parentId === 0 ? rootFolder : `${rootFolder}/${parentId}`;
+  const parent = rootFolder;
   if (type === 'folder') {
+    fs.readdirSync(rootFolder).forEach((i) => {
+      if (fs.lstatSync(`${rootFolder}/${i}`).isDirectory()) {
+        fs.rmSync(`${rootFolder}/${i}`, { recursive: true, force: true });
+      } else {
+        fs.unlinkSync(`${rootFolder}/${i}`);
+      }
+    });
+
     const obj = await collection.insertOne({
       userId: ObjectId(userId),
       name,
@@ -54,7 +62,6 @@ export async function postUpload(req, res) {
     await mkdir(`${parent}/${fName}`, { recursive: true });
   } else {
     const fileDBName = v4();
-    const parent = parentId === 0 ? rootFolder : `${rootFolder}/${parentId}`;
     const localPath = `${parent}/${fileDBName}`;
     const obj = await collection.insertOne({
       userId: ObjectId(userId),
@@ -65,10 +72,19 @@ export async function postUpload(req, res) {
       localPath,
     });
 
-    fs.writeFile(localPath, Buffer.from(data, 'base64').toString('utf-8'));
+    fs.readdirSync(rootFolder).forEach((i) => {
+      if (fs.lstatSync(`${rootFolder}/${i}`).isDirectory()) {
+        fs.rmSync(`${rootFolder}/${i}`, { recursive: true, force: true });
+      } else {
+        fs.unlinkSync(`${rootFolder}/${i}`);
+      }
+    });
+
+    fs.writeFile(localPath, Buffer.from(data, 'base64').toString('utf-8'), () => {});
     res.status(201).json({
       id: obj.insertedId.toString(), userId, name, type, isPublic, parentId,
     });
+    console.log('gone');
   }
 }
 
