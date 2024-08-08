@@ -26,7 +26,7 @@ export async function postUpload(req, res) {
   } else if (parentId !== 0) {
     const file = await collection.findOne({ _id: ObjectId(parentId) });
     if (!file) {
-      throw new Error('Page not found');
+      throw new Error('Parent not found');
     } else if (file.type !== 'folder') {
       throw new Error('Parent is not a folder');
     }
